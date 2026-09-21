@@ -19,6 +19,9 @@ def test_initial_migration_round_trip(tmp_path, monkeypatch):
     command.upgrade(config, "head")
     engine = create_engine(database_url)
     assert EXPECTED_TABLES <= set(inspect(engine).get_table_names())
+    assert "embedding_model" in {
+        column["name"] for column in inspect(engine).get_columns("document_chunks")
+    }
 
     command.downgrade(config, "base")
     assert EXPECTED_TABLES.isdisjoint(inspect(engine).get_table_names())

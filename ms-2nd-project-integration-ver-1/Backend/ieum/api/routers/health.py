@@ -4,6 +4,7 @@ from ieum.config import get_settings
 from ieum.providers.llm import get_llm_provider
 from ieum.providers.productivity import get_productivity_provider
 from ieum.providers.vector_search import get_vector_search_provider
+from ieum.providers.embedding import get_embedding_provider
 
 
 router = APIRouter(tags=["health"])
@@ -25,6 +26,7 @@ def health_ready():
     llm_provider = get_llm_provider()
     productivity_provider = get_productivity_provider()
     vector_search_provider = get_vector_search_provider()
+    embedding_provider = get_embedding_provider()
     return {
         "status": "ready",
         "mode": settings.app_mode,
@@ -32,5 +34,7 @@ def health_ready():
         "llm_model": llm_provider.model_name,
         "productivity_provider": productivity_provider.provider_name,
         "vector_search_provider": vector_search_provider.provider_name,
+        "embedding_provider": embedding_provider.provider_name,
+        "embedding_model": embedding_provider.model_id,
         "azure_providers_loaded": settings.app_mode == "azure",
     }

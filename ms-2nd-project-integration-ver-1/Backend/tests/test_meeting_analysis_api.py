@@ -16,6 +16,8 @@ def test_health_ready_reports_mock_provider():
 
     assert response.status_code == 200
     assert response.json()["llm_provider"] == "mock"
+    assert response.json()["embedding_provider"] == "mock_embedding"
+    assert response.json()["embedding_model"] == "mock_embedding_64"
     assert response.json()["azure_providers_loaded"] is False
 
 

@@ -41,6 +41,7 @@ class PgVectorSearchProvider(VectorSearchProvider):
                     "document_created_at": chunk.created_at,
                     "document_updated_at": chunk.updated_at,
                     "embedding": vector,
+                    "embedding_model": self.embedding_provider.model_id,
                 }
             )
         statement = insert(DocumentChunkModel).values(rows)
@@ -70,7 +71,7 @@ class PgVectorSearchProvider(VectorSearchProvider):
         statement = select(
             DocumentChunkModel,
             distance.label("distance"),
-        )
+        ).where(DocumentChunkModel.embedding_model == self.embedding_provider.model_id)
         if category:
             statement = statement.where(
                 DocumentChunkModel.category == category

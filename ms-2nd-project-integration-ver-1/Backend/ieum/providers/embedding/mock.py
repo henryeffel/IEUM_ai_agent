@@ -11,6 +11,10 @@ class MockEmbeddingProvider(EmbeddingProvider):
         return "mock_embedding"
 
     @property
+    def model_id(self) -> str:
+        return f"mock_embedding_{self.dimension}"
+
+    @property
     def dimension(self) -> int:
         return int(os.getenv("MOCK_EMBEDDING_DIMENSION", "64"))
 
