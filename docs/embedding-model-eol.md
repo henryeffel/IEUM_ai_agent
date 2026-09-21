@@ -17,7 +17,7 @@ NVIDIA [모델 페이지](https://build.nvidia.com/nvidia/llama-nemotron-embed-1
 1. `EMBEDDING_PROVIDER=nvidia`, `NVIDIA_EMBEDDING_MODEL=nvidia/nemotron-3-embed-1b`, `NVIDIA_API_KEY`를 설정한 뒤 Backend 디렉터리에서 `python -m ieum.demo probe-embedding`을 실행한다. 출력의 `provider=nvidia_embedding`, 모델명과 2048차원을 확인한다. 이 명령은 `passage`와 `query`를 각각 호출하며 DB를 읽거나 쓰지 않는다.
 2. Supabase 운영 DB를 백업하고 기존 Chunk의 본문·개수를 확인한다. 번들 Demo 시드 10개 외에 사용자 문서가 있는지 확인한다. `scripts/verify_supabase.py`는 테이블을 downgrade/recreate하는 전용 테스트 DB 도구이므로 운영 DB에 실행하지 않는다.
 3. 코드를 배포하고 Render의 `NVIDIA_EMBEDDING_MODEL`이 새 값인지 확인한다. `render.yaml`에도 새 모델을 지정했다. 서비스 시작 시 Alembic migration 후 Demo 시드가 upsert된다. 이때 기존 행의 모델 ID는 비어 있고 검색 결과가 일부 또는 전부 비어 있을 수 있으므로 점검 시간에 진행한다.
-4. 배포된 코드와 Supabase 운영 DB 연결을 갖춘 운영자 환경에서 `python -m ieum.demo index-status`로 모델별 Chunk 수를 확인한다. 이어서 `python -m ieum.demo reindex --confirm`으로 모든 Chunk를 새 모델로 재임베딩한다. 두 명령은 Render shell 또는 Supabase `DATABASE_URL`을 환경변수로 설정한 로컬 Backend에서 실행할 수 있다. 연결 문자열과 비밀번호는 출력하거나 저장소에 기록하지 않는다.
+4. 배포된 코드와 Supabase 운영 DB 연결을 갖춘 운영자 환경에서 `python -m ieum.demo index-status`로 모델별 Chunk 수를 확인한다. 이어서 `python -m ieum.demo reindex --confirm`으로 모든 Chunk를 새 모델로 재임베딩한다. Render shell 또는 Supabase `DATABASE_URL`을 환경변수로 설정한 로컬 Backend에서 실행할 수 있다. 수동 GitHub Actions `Embedding reindex` 워크플로도 추가했다. 이 경로는 저장소 Secret `SUPABASE_DATABASE_URL`과 `NVIDIA_API_KEY`를 설정한 뒤 `operation=status`로 먼저 확인하고, `operation=reindex`, `confirmation=REINDEX`로 실행한다. 연결 문자열과 비밀번호는 출력하거나 저장소에 기록하지 않는다.
 5. `index-status`를 다시 실행해 `ready_for_search=True`이고 다른 모델 또는 `<unlabeled>` Chunk가 없는지 확인한다. 한국어 질의의 Top 1~3, 점수 분포, `min_score` 통과 여부도 확인한다. 기존 0.04 기준은 새 모델에서 다시 측정한다.
 6. 공개 `/health/ready`에서 `embedding_model=nvidia/nemotron-3-embed-1b`인지 확인하고, 공개 검색과 `PENDING_APPROVAL → APPROVED → SUCCEEDED` 흐름을 확인한다.
 
@@ -35,6 +35,7 @@ NVIDIA [모델 페이지](https://build.nvidia.com/nvidia/llama-nemotron-embed-1
 - `python -m scripts.probe_demo_retrieval`로 실제 Demo 시드와 동일한 10개 Chunk를 새 모델로 임베딩했다. 기본 한국어 회의록 질의의 Top 1은 `demo-travel-policy-0001`(출장비 규정, score `0.5335`)이었다. 전체 순위는 구매 승인 규정 `0.3103`, 구매 승인 규정 `0.2820`, 출장비 규정 `0.2718`, 회의실 운영 규정 `0.2095` 순이었다. 현재 UI의 `category=policy`, `top_k=1`, `min_score=0.04`에서는 목표 규정이 통과한다. 한 샘플 결과이므로 임계값은 아직 변경하지 않았다.
 - DB 읽기 전용 `index-status` 명령을 추가했다. 전체 Chunk 중 현재 모델로 색인된 수와 모델별 분포를 보여 주며, 비어 있거나 혼합된 색인은 `ready_for_search=False`로 표시한다. 운영 DB 연결이 없어 실행 결과는 아직 없다.
 - `/health/ready` 응답에 현재 임베딩 Provider와 모델명을 추가했다. 배포 후 설정이 실제 프로세스에 반영됐는지 공개 GET 요청으로 확인할 수 있다.
+- `Embedding reindex` GitHub Actions는 수동 실행 전용이다. 현재 저장소에 필요한 Secret이 등록돼 있지 않아 실행하지 않았다. PR이 기본 브랜치에 반영되고 Secret 설정 및 Supabase 운영 DB 백업이 끝난 뒤 사용할 수 있다.
 
 ## 재발 방지 작업
 
