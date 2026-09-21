@@ -29,7 +29,7 @@ NVIDIA [모델 페이지](https://build.nvidia.com/nvidia/llama-nemotron-embed-1
 
 - Backend `85 passed, 1 skipped`; SQLite migration에 `embedding_model` 컬럼이 생기는 것을 확인했다.
 - 임베딩 API 실패 시 재색인 쓰기 트랜잭션에 들어가지 않는 테스트를 통과했다.
-- 전용 PostgreSQL DB에서 기존 모델 검색 차단 → 전체 재색인 → 새 모델 검색 성공을 확인하는 통합 테스트를 추가했다. 전용 Supabase 테스트 DB 연결이 없어 이 테스트는 아직 실행되지 않았다. 운영 DB에는 파괴적인 통합 테스트를 실행하지 않는다.
+- 전용 PostgreSQL DB에서 기존 모델 검색 차단 → 전체 재색인 → 새 모델 검색 성공을 확인하는 통합 테스트를 추가했다. GitHub Actions [Backend CI 실행](https://github.com/henryeffel/IEUM_ai_agent/actions/runs/35668388324)에서 pgvector 서비스 기반 통합 테스트 4건과 SQLite·Mock 테스트 85건, 백엔드 이미지 빌드가 통과했다. 이 결과는 Supabase 운영 DB 검증을 대신하지 않는다. 운영 DB에는 파괴적인 통합 테스트를 실행하지 않는다.
 - 초기에는 로컬 API 키가 없어 실제 모델 응답을 확인하지 못했다. 이후 키를 설정한 뒤 `probe-embedding`을 실행했고, `nvidia/nemotron-3-embed-1b`의 passage·query 요청이 모두 성공하여 각각 2048차원을 반환했다. 운영 DB 연결 설정은 없어 재색인은 아직 실행하지 않았다.
 - DB 쓰기 없는 임베딩 API 사전 점검 명령과 결과 차원 검증을 추가했다.
 - `python -m scripts.probe_demo_retrieval`로 실제 Demo 시드와 동일한 10개 Chunk를 새 모델로 임베딩했다. 기본 한국어 회의록 질의의 Top 1은 `demo-travel-policy-0001`(출장비 규정, score `0.5335`)이었다. 전체 순위는 구매 승인 규정 `0.3103`, 구매 승인 규정 `0.2820`, 출장비 규정 `0.2718`, 회의실 운영 규정 `0.2095` 순이었다. 현재 UI의 `category=policy`, `top_k=1`, `min_score=0.04`에서는 목표 규정이 통과한다. 한 샘플 결과이므로 임계값은 아직 변경하지 않았다.
