@@ -23,19 +23,28 @@ NVIDIA [모델 페이지](https://build.nvidia.com/nvidia/llama-nemotron-embed-1
 
 저장소에는 `embedding_model` 컬럼과 `python -m ieum.demo reindex --confirm` 명령을 추가했다. 이 명령은 DB에 남아 있는 모든 Chunk 본문을 읽고, 전체 임베딩 API 호출이 끝난 뒤 하나의 트랜잭션으로 벡터와 모델 ID를 갱신한다. 검색은 현재 설정된 모델 ID의 행만 반환한다. Alembic migration 이후 기존 행은 모델 ID가 비어 있어 재색인 전까지 검색에서 제외된다. 따라서 **migration·모델 전환·재색인 사이에는 공개 검색이 비어 있을 수 있으므로 운영 점검 시간에 실행**한다. 재색인 도중 문서 내용이 변경되면 중단한다.
 
-이번 저장소 변경은 **운영 DB 재색인·배포를 수행하지 않았다**. 운영 데이터 전체와 백업을 확인한 뒤 실행해야 한다.
+2026-09-22 운영 적용과 검증 결과는 아래에 기록한다.
 
 ## 2026-09-22 로컬 검증
 
 - Backend `86 passed, 1 skipped`; SQLite migration에 `embedding_model` 컬럼이 생기는 것을 확인했다.
 - 임베딩 API 실패 시 재색인 쓰기 트랜잭션에 들어가지 않는 테스트를 통과했다.
 - 전용 PostgreSQL DB에서 기존 모델 검색 차단 → 전체 재색인 → 새 모델 검색 성공을 확인하는 통합 테스트를 추가했다. GitHub Actions [Backend CI 실행](https://github.com/henryeffel/IEUM_ai_agent/actions/runs/35668388324)에서 pgvector 서비스 기반 통합 테스트 4건과 SQLite·Mock 테스트 85건, 백엔드 이미지 빌드가 통과했다. 이 결과는 Supabase 운영 DB 검증을 대신하지 않는다. 운영 DB에는 파괴적인 통합 테스트를 실행하지 않는다.
-- 초기에는 로컬 API 키가 없어 실제 모델 응답을 확인하지 못했다. 이후 키를 설정한 뒤 `probe-embedding`을 실행했고, `nvidia/nemotron-3-embed-1b`의 passage·query 요청이 모두 성공하여 각각 2048차원을 반환했다. 운영 DB 연결 설정은 없어 재색인은 아직 실행하지 않았다.
+- 초기에는 로컬 API 키가 없어 실제 모델 응답을 확인하지 못했다. 이후 키를 설정한 뒤 `probe-embedding`을 실행했고, `nvidia/nemotron-3-embed-1b`의 passage·query 요청이 모두 성공하여 각각 2048차원을 반환했다.
 - DB 쓰기 없는 임베딩 API 사전 점검 명령과 결과 차원 검증을 추가했다.
 - `python -m scripts.probe_demo_retrieval`로 실제 Demo 시드와 동일한 10개 Chunk를 새 모델로 임베딩했다. 기본 한국어 회의록 질의의 Top 1은 `demo-travel-policy-0001`(출장비 규정, score `0.5335`)이었다. 전체 순위는 구매 승인 규정 `0.3103`, 구매 승인 규정 `0.2820`, 출장비 규정 `0.2718`, 회의실 운영 규정 `0.2095` 순이었다. 현재 UI의 `category=policy`, `top_k=1`, `min_score=0.04`에서는 목표 규정이 통과한다. 한 샘플 결과이므로 임계값은 아직 변경하지 않았다.
-- DB 읽기 전용 `index-status` 명령을 추가했다. 전체 Chunk 중 현재 모델로 색인된 수와 모델별 분포를 보여 주며, 비어 있거나 혼합된 색인은 `ready_for_search=False`로 표시한다. 운영 DB 연결이 없어 실행 결과는 아직 없다.
+- DB 읽기 전용 `index-status` 명령을 추가했다. 전체 Chunk 중 현재 모델로 색인된 수와 모델별 분포를 보여 주며, 비어 있거나 혼합된 색인은 `ready_for_search=False`로 표시한다.
 - `/health/ready` 응답에 현재 임베딩 Provider와 모델명을 추가했다. 배포 후 설정이 실제 프로세스에 반영됐는지 공개 GET 요청으로 확인할 수 있다.
-- `Embedding reindex` GitHub Actions는 수동 실행 전용이다. `SUPABASE_DATABASE_URL`과 `NVIDIA_API_KEY` 저장소 Secret의 등록은 이름만 확인했다. GitHub는 기본 브랜치에 없는 새 워크플로 실행을 HTTP 404로 거부했으므로 운영 DB 조회와 재색인은 아직 실행하지 않았다. PR이 기본 브랜치에 반영되고 Supabase 운영 DB 백업이 끝난 뒤 사용할 수 있다.
+- `Embedding reindex` GitHub Actions는 수동 실행 전용이다. `SUPABASE_DATABASE_URL`과 `NVIDIA_API_KEY` 저장소 Secret의 등록은 이름만 확인했다. 기본 브랜치 병합 전에는 워크플로 실행이 HTTP 404로 거부됐다.
+
+## 2026-09-22 운영 적용 결과
+
+- [PR #11](https://github.com/henryeffel/IEUM_ai_agent/pull/11)을 `main`에 병합했다. 병합 커밋은 `52b84c9`이며 [main Backend CI](https://github.com/henryeffel/IEUM_ai_agent/actions/runs/35671398752)가 성공했다.
+- [읽기 전용 색인 조회](https://github.com/henryeffel/IEUM_ai_agent/actions/runs/35671442991)에서 `total_chunks=10`, `active_chunks=10`, `ready_for_search=True`, `migration_required=False`를 확인했다. Render 시작 시 migration과 Demo 시드가 새 모델로 적재된 상태였다.
+- [전체 재색인](https://github.com/henryeffel/IEUM_ai_agent/actions/runs/35671565928)은 `reindexed_chunks=10`으로 성공했다. 이후에도 10개 전부 `nvidia/nemotron-3-embed-1b`이며 `ready_for_search=True`였다.
+- 공개 Render `/health/ready`는 `mode=demo`, `embedding_provider=nvidia_embedding`, `embedding_model=nvidia/nemotron-3-embed-1b`, `vector_search_provider=pgvector`를 반환했다.
+- 공개 Knowledge Search는 `demo-travel-policy-0001`(출장비 규정)을 근거로 반환했고 `grounded=true`, score `0.1349`였다. 이 수치는 별도 검증 질의의 결과이며 로컬 기본 샘플의 `0.5335`와 직접 비교하지 않는다.
+- 공개 Workflow는 `PENDING_APPROVAL → APPROVED → SUCCEEDED`를 완료했다. 근거는 `demo-travel-policy-0001`이었고 Mock To-do 2건이 각각 `attempts=1`, Provider `mock_microsoft_365`, Mock resource ID를 반환했다. 실제 Microsoft 365 부작용은 없었다.
 
 ## 재발 방지 작업
 
