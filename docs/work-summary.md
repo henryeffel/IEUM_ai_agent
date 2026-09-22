@@ -1,6 +1,19 @@
 # IEUM 작업 종합 요약
 
-기준일: 2026-07-29
+기존 본문 기준일: 2026-07-29 · 최신 업데이트: 2026-09-22
+
+## 최신 상태: 임베딩 모델 종료 대응 완료 (2026-09-22)
+
+NVIDIA가 기존 `nvidia/llama-nemotron-embed-1b-v2` 엔드포인트를 종료해 RAG 임베딩 요청이 HTTP 410을 반환했다. `nvidia/nemotron-3-embed-1b`로 전환했고, 문서와 검색 질의 모두 실제 API에서 2048차원 벡터를 반환하는 것을 확인했다.
+
+- 코드 기본값·환경변수 예시·Render Blueprint를 새 모델로 갱신했다. DB에 `embedding_model`을 기록하고 현재 모델의 벡터만 검색하도록 했다.
+- Alembic migration, 전체 Chunk 재색인 명령, 모델별 색인 상태 조회, 임베딩 API 사전 점검, 수동 GitHub Actions 재색인 워크플로를 추가했다. 키와 DB 연결 문자열은 GitHub Secret으로 설정하고 저장소에는 기록하지 않았다.
+- 로컬 Backend `86 passed, 1 skipped`; GitHub Actions에서 SQLite·Mock 테스트, PostgreSQL·pgvector 통합 테스트와 이미지 빌드가 통과했다.
+- [PR #11](https://github.com/henryeffel/IEUM_ai_agent/pull/11)을 병합한 뒤 Supabase의 10개 Chunk를 새 모델로 재색인했다. [실행 기록](https://github.com/henryeffel/IEUM_ai_agent/actions/runs/35671565928)은 `reindexed_chunks=10`, `ready_for_search=True`를 보여 준다.
+- 공개 Render API는 새 모델을 보고했고, 출장비 규정을 근거로 계획 생성 → 승인 → Mock To-do 2건 실행이 `SUCCEEDED`로 완료됐다. 실제 Microsoft 365 작업은 발생하지 않았다.
+- 운영 결과는 [임베딩 모델 종료 및 교체 기록](./embedding-model-eol.md)에 정리했고 [문서 PR #12](https://github.com/henryeffel/IEUM_ai_agent/pull/12)로 `main`에 반영했다.
+
+현재 공개 데모는 정상 검증됐다. 다음 모델 교체에서 검색 중단 시간을 줄이려면 별도 색인 세대에 재임베딩한 뒤 검색 대상을 전환하는 절차가 필요하다. 아래 2026-07-29 본문의 남은 작업 목록은 당시 계획이며 현재 완료 상태를 나타내지 않는다.
 
 ## 1. 프로젝트 방향
 
@@ -223,4 +236,3 @@ GitHub 게시에서 제외한 항목:
 
 LangGraph, 멀티에이전트, STT, 화자 분리와 Reranker는 위 작업 이후에
 검토한다.
-

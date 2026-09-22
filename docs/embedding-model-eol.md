@@ -46,9 +46,8 @@ NVIDIA [모델 페이지](https://build.nvidia.com/nvidia/llama-nemotron-embed-1
 - 공개 Knowledge Search는 `demo-travel-policy-0001`(출장비 규정)을 근거로 반환했고 `grounded=true`, score `0.1349`였다. 이 수치는 별도 검증 질의의 결과이며 로컬 기본 샘플의 `0.5335`와 직접 비교하지 않는다.
 - 공개 Workflow는 `PENDING_APPROVAL → APPROVED → SUCCEEDED`를 완료했다. 근거는 `demo-travel-policy-0001`이었고 Mock To-do 2건이 각각 `attempts=1`, Provider `mock_microsoft_365`, Mock resource ID를 반환했다. 실제 Microsoft 365 부작용은 없었다.
 
-## 재발 방지 작업
+## 현재 남은 개선점
 
-- 저장 벡터에 임베딩 모델 ID와 색인 세대를 기록한다.
-- 새 세대에 전체 문서를 적재·검증한 뒤 검색 대상을 전환한다.
-- 모델 종료 공지를 감시하고, 모델 교체 시 한국어 검색 평가를 반복한다.
-- 원본 Chunk와 재색인 명령을 유지한다. 같은 2048차원 모델로 바꾸더라도 재색인은 필수다.
+- 모델 ID 기록과 전체 재색인 명령은 구현했다. 다음 교체에서는 별도 색인 세대에 전체 문서를 적재·검증한 뒤 검색 대상을 전환해 검색 중단 시간을 줄인다.
+- 모델 종료 공지를 감시하고 교체할 때마다 한국어 검색 평가를 반복한다.
+- 원본 Chunk를 유지한다. 같은 2048차원 모델로 바꾸더라도 재색인은 필수다.
