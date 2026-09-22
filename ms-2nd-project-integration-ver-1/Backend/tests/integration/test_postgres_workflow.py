@@ -28,6 +28,10 @@ os.environ["VECTOR_SEARCH_PROVIDER"] = "pgvector"
 
 from ieum.database import get_engine, get_session_factory
 from ieum.providers.embedding.factory import get_embedding_provider
+from ieum.providers.embedding.mock import MockEmbeddingProvider
+from ieum.providers.vector_search.pgvector import PgVectorSearchProvider
+from ieum.demo.reindex import reindex_all
+from ieum.schemas.knowledge import DocumentChunkInput
 from ieum.providers.llm.factory import get_llm_provider
 from ieum.providers.productivity.factory import get_productivity_provider
 from ieum.providers.vector_search.factory import get_vector_search_provider
@@ -120,6 +124,38 @@ def test_pgvector_stores_and_searches_2048_dimension_embedding():
             )
         ).scalar_one()
     assert dimension == 2048
+
+
+def test_reindex_switches_search_to_new_embedding_model():
+    class VersionedEmbedding(MockEmbeddingProvider):
+        def __init__(self, model_id):
+            self._model_id = model_id
+
+        @property
+        def model_id(self):
+            return self._model_id
+
+    old = PgVectorSearchProvider(VersionedEmbedding("retired-model"))
+    new_embedding = VersionedEmbedding("replacement-model")
+    new = PgVectorSearchProvider(new_embedding)
+    old.index_chunks([DocumentChunkInput(
+        chunk_id="migration-check",
+        document_id="migration-check",
+        title="출장비 규정",
+        content="출장비는 영수증을 첨부합니다.",
+        category="policy",
+        chunk_index=0,
+    )])
+    assert new.search("출장비는 영수증을 첨부합니다.", category=None, top_k=1, min_score=0) == []
+
+    assert reindex_all(new_embedding, get_session_factory()) == 1
+    hits = new.search("출장비는 영수증을 첨부합니다.", category=None, top_k=1, min_score=0)
+    assert [hit.chunk_id for hit in hits] == ["migration-check"]
+    with get_engine().connect() as connection:
+        model = connection.execute(text(
+            "SELECT embedding_model FROM document_chunks WHERE chunk_id = 'migration-check'"
+        )).scalar_one()
+    assert model == "replacement-model"
 
 
 def test_postgres_concurrent_execution_claims_plan_once():

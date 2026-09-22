@@ -35,3 +35,4 @@ class DocumentChunkModel(Base):
         default=utc_now,
     )
     embedding: Mapped[list[float]] = mapped_column(Vector(2048))
+    embedding_model: Mapped[str | None] = mapped_column(String(200), nullable=True)

@@ -6,6 +6,7 @@
 
 ## 문서
 
+- [임베딩 모델 종료 및 교체 기록](./embedding-model-eol.md)
 - [P0 제출 전 Release Checklist](./p0-release-checklist.md)
 - [작업 종합 요약](./work-summary.md)
 - [구현 진행 기록](./implementation-progress.md)

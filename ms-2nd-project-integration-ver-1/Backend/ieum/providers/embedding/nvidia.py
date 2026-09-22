@@ -14,7 +14,7 @@ class NvidiaEmbeddingProvider(EmbeddingProvider):
             raise RuntimeError("NVIDIA_API_KEY 환경변수가 필요합니다.")
         self._model = os.getenv(
             "NVIDIA_EMBEDDING_MODEL",
-            "nvidia/llama-nemotron-embed-1b-v2",
+            "nvidia/nemotron-3-embed-1b",
         )
         self._client = OpenAI(
             base_url=os.getenv(
@@ -29,6 +29,10 @@ class NvidiaEmbeddingProvider(EmbeddingProvider):
     @property
     def provider_name(self) -> str:
         return "nvidia_embedding"
+
+    @property
+    def model_id(self) -> str:
+        return self._model
 
     @property
     def dimension(self) -> int:

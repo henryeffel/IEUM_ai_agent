@@ -16,6 +16,8 @@ services:
         value: nvidia
       - key: EMBEDDING_PROVIDER
         value: nvidia
+      - key: NVIDIA_EMBEDDING_MODEL
+        value: nvidia/nemotron-3-embed-1b
       - key: VECTOR_SEARCH_PROVIDER
         value: pgvector
       - key: PRODUCTIVITY_PROVIDER
