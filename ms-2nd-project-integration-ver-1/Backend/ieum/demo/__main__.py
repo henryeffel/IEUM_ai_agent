@@ -1,7 +1,8 @@
 import argparse
+from sqlalchemy import inspect
 
 from ieum.config import get_settings
-from ieum.database import get_session_factory
+from ieum.database import get_engine, get_session_factory
 from ieum.demo.maintenance import DemoMaintenanceService
 from ieum.providers.vector_search import get_vector_search_provider
 from ieum.providers.embedding import get_embedding_provider
@@ -36,7 +37,14 @@ def main():
         print(f"reindexed_chunks={reindex_all(get_embedding_provider(), get_session_factory())}")
         return
     if args.command == "index-status":
-        print(get_index_status(get_session_factory(), get_embedding_provider().model_id))
+        columns = {
+            column["name"] for column in inspect(get_engine()).get_columns("document_chunks")
+        }
+        print(get_index_status(
+            get_session_factory(),
+            get_embedding_provider().model_id,
+            schema_has_model="embedding_model" in columns,
+        ))
         return
     if args.command == "seed":
         service = DemoMaintenanceService(
